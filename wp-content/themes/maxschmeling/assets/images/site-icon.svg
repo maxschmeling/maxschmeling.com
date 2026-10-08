@@ -1,0 +1,14 @@
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  viewBox="0 0 512 512"
+  role="img"
+  aria-labelledby="title"
+>
+  <title id="title">Max Schmeling monogram</title>
+  <rect width="512" height="512" rx="104" fill="#171917" />
+  <path
+    d="M68 390V122h72l92 142 92-142h72v268h-76V250l-66 104h-44l-66-104v140H68Z"
+    fill="#f3f0e8"
+  />
+  <path d="m366 414 72-316h52l-72 316h-52Z" fill="#1d5cff" />
+</svg>

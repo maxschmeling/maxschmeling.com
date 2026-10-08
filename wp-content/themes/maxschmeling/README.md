@@ -11,6 +11,8 @@ A custom classic WordPress theme for [maxschmeling.com](https://maxschmeling.com
 
 The homepage automatically displays the three latest posts. Any content added to the selected `Home` page appears below the built-in homepage sections.
 
+The theme also provides a branded favicon automatically. If a Site Icon is later configured under **Settings → General**, WordPress uses that icon instead.
+
 ## Supported templates
 
 - Front page

@@ -71,6 +71,28 @@ function maxschmeling_assets(): void {
 add_action( 'wp_enqueue_scripts', 'maxschmeling_assets' );
 
 /**
+ * Provide a branded favicon until a Site Icon is set in WordPress.
+ *
+ * WordPress takes over automatically as soon as an icon is configured in
+ * Settings > General, so this never overrides an administrator's choice.
+ */
+function maxschmeling_fallback_site_icon(): void {
+	if ( has_site_icon() ) {
+		return;
+	}
+
+	$images_url = get_template_directory_uri() . '/assets/images/';
+	?>
+	<link rel="icon" href="<?php echo esc_url( $images_url . 'site-icon.svg' ); ?>" type="image/svg+xml">
+	<link rel="icon" href="<?php echo esc_url( $images_url . 'site-icon-32.png' ); ?>" sizes="32x32">
+	<link rel="icon" href="<?php echo esc_url( $images_url . 'site-icon-192.png' ); ?>" sizes="192x192">
+	<link rel="apple-touch-icon" href="<?php echo esc_url( $images_url . 'site-icon-180.png' ); ?>">
+	<meta name="msapplication-TileImage" content="<?php echo esc_url( $images_url . 'site-icon-512.png' ); ?>">
+	<?php
+}
+add_action( 'wp_head', 'maxschmeling_fallback_site_icon', 99 );
+
+/**
  * Use a compact excerpt on cards.
  *
  * @param int $length Default excerpt length.

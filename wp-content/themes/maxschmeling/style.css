@@ -4,7 +4,7 @@ Theme URI: https://maxschmeling.com/
 Author: Max Schmeling
 Author URI: https://maxschmeling.com/
 Description: A focused, editorial portfolio and blog theme for Max Schmeling.
-Version: 1.0.0
+Version: 1.1.0
 Requires at least: 6.6
 Tested up to: 6.9
 Requires PHP: 8.1
@@ -519,6 +519,115 @@ select {
   padding-block: clamp(3rem, 7vw, 6rem);
 }
 
+.about-page {
+  padding-block: clamp(3rem, 7vw, 7rem);
+}
+
+.about-hero {
+  align-items: end;
+  display: grid;
+  gap: clamp(2rem, 7vw, 7rem);
+  grid-template-columns: minmax(0, 1.35fr) minmax(18rem, 0.65fr);
+  padding-bottom: clamp(3rem, 7vw, 6rem);
+}
+
+.about-hero h1 {
+  font-size: clamp(3rem, 7vw, 6.75rem);
+  letter-spacing: -0.06em;
+  line-height: 0.94;
+  margin: 0;
+}
+
+.about-lede {
+  font-size: clamp(1.15rem, 2vw, 1.35rem);
+  line-height: 1.55;
+  margin: 0 0 0.4rem;
+}
+
+.about-grid {
+  border-top: 1px solid var(--line);
+  display: grid;
+  gap: clamp(2.5rem, 7vw, 7rem);
+  grid-template-columns: minmax(0, 1fr) minmax(17rem, 0.42fr);
+  padding-top: clamp(3rem, 7vw, 6rem);
+}
+
+.about-copy {
+  margin: 0;
+  max-width: 48rem;
+}
+
+.about-copy section + section {
+  border-top: 1px solid var(--line);
+  margin-top: 3.5rem;
+  padding-top: 1rem;
+}
+
+.about-aside {
+  align-self: start;
+  background: var(--ink);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  color: #f7f5ef;
+  padding: 1.5rem;
+  position: sticky;
+  top: 1.5rem;
+}
+
+.about-aside-label {
+  color: var(--acid);
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  margin: 0 0 1.25rem;
+  text-transform: uppercase;
+}
+
+.about-aside dl {
+  margin: 0;
+}
+
+.about-aside dl div {
+  border-top: 1px solid rgba(255, 255, 255, 0.14);
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: 5.6rem 1fr;
+  padding-block: 0.85rem;
+}
+
+.about-aside dt {
+  color: #a8afa5;
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+}
+
+.about-aside dd {
+  font-size: 0.9rem;
+  font-weight: 650;
+  margin: 0;
+}
+
+.about-links {
+  display: grid;
+  gap: 0.65rem;
+  margin-top: 1.5rem;
+}
+
+.about-links a {
+  color: #fff;
+  font-family: var(--mono);
+  font-size: 0.76rem;
+  font-weight: 700;
+  text-decoration: none;
+  text-transform: uppercase;
+}
+
+.about-links a:hover {
+  color: var(--acid);
+}
+
 .archive-header,
 .page-header {
   margin-bottom: clamp(2.5rem, 6vw, 5rem);
@@ -861,6 +970,16 @@ select {
   .hero {
     gap: 3rem;
     grid-template-columns: 1fr;
+  }
+
+  .about-hero,
+  .about-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .about-aside {
+    max-width: 30rem;
+    position: static;
   }
 
   .hero-card {
