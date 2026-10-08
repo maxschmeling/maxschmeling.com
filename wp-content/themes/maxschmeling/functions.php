@@ -91,6 +91,8 @@ function maxschmeling_fallback_site_icon(): void {
 	<?php
 }
 add_action( 'wp_head', 'maxschmeling_fallback_site_icon', 99 );
+add_action( 'admin_head', 'maxschmeling_fallback_site_icon', 99 );
+add_action( 'login_head', 'maxschmeling_fallback_site_icon', 99 );
 
 /**
  * Use a compact excerpt on cards.
