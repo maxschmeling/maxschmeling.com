@@ -1,0 +1,54 @@
+{
+  "$schema": "https://schemas.wp.org/trunk/theme.json",
+  "version": 3,
+  "settings": {
+    "appearanceTools": true,
+    "layout": {
+      "contentSize": "46rem",
+      "wideSize": "68rem"
+    },
+    "color": {
+      "defaultPalette": false,
+      "palette": [
+        { "slug": "paper", "name": "Paper", "color": "#f3f0e8" },
+        { "slug": "ink", "name": "Ink", "color": "#171917" },
+        { "slug": "blue", "name": "Electric Blue", "color": "#1d5cff" },
+        { "slug": "acid", "name": "Acid", "color": "#c9ff38" },
+        { "slug": "muted", "name": "Muted", "color": "#636860" }
+      ]
+    },
+    "spacing": {
+      "units": ["px", "rem", "em", "%", "vw", "vh"]
+    },
+    "typography": {
+      "fluid": true,
+      "fontFamilies": [
+        {
+          "fontFamily": "Inter, Helvetica Neue, Helvetica, Arial, sans-serif",
+          "name": "Sans",
+          "slug": "sans"
+        },
+        {
+          "fontFamily": "SFMono-Regular, Consolas, Liberation Mono, monospace",
+          "name": "Mono",
+          "slug": "mono"
+        }
+      ]
+    }
+  },
+  "styles": {
+    "color": {
+      "background": "#f3f0e8",
+      "text": "#171917"
+    },
+    "typography": {
+      "fontFamily": "var(--wp--preset--font-family--sans)",
+      "lineHeight": "1.7"
+    },
+    "elements": {
+      "link": {
+        "color": { "text": "#0d3fc7" }
+      }
+    }
+  }
+}
