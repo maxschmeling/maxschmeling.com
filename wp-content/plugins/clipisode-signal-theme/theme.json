@@ -1,0 +1,211 @@
+{
+  "id": "signal",
+  "version": "1.0.0",
+  "label": "Signal",
+  "description": "An animated editorial Q&A theme for technical conversations and ideas worth exploring.",
+  "renderer": "signal",
+  "canvas": {
+    "backgroundField": "backgroundColor"
+  },
+  "timeline": {
+    "title": {
+      "label": "Opening question",
+      "enabledField": "showTitle",
+      "durationField": "titleDuration"
+    },
+    "ending": {
+      "label": "Closing thought",
+      "enabledField": "showEnding",
+      "durationField": "endingDuration"
+    },
+    "mediaSlots": [
+      {
+        "id": "conversation",
+        "label": "Conversation",
+        "description": "Questions, answers, and insights appear in this order.",
+        "mode": "sequence"
+      }
+    ]
+  },
+  "tags": [],
+  "groups": [
+    {
+      "id": "identity",
+      "label": "Show identity",
+      "scope": "composition",
+      "description": "The short labels that frame this conversation.",
+      "fields": [
+        {
+          "id": "seriesName",
+          "label": "Series name",
+          "type": "text",
+          "default": "THE SIGNAL"
+        },
+        {
+          "id": "episodeLabel",
+          "label": "Episode label",
+          "type": "text",
+          "default": "FIELD NOTES / 001"
+        },
+        {
+          "id": "topicLabel",
+          "label": "Topic label",
+          "type": "text",
+          "default": "TECH / PEOPLE / IDEAS"
+        }
+      ]
+    },
+    {
+      "id": "appearance",
+      "label": "Look and feel",
+      "scope": "composition",
+      "fields": [
+        {
+          "id": "videoFit",
+          "label": "Video fit",
+          "type": "select",
+          "default": "cover",
+          "options": [
+            { "value": "cover", "label": "Fill frame (crop)" },
+            { "value": "contain", "label": "Fit entire video" }
+          ]
+        },
+        {
+          "id": "backgroundColor",
+          "label": "Midnight background",
+          "type": "color",
+          "default": "#0b1023"
+        },
+        {
+          "id": "accentColor",
+          "label": "Signal accent",
+          "type": "color",
+          "default": "#c8ff5f"
+        },
+        {
+          "id": "secondaryColor",
+          "label": "Electric accent",
+          "type": "color",
+          "default": "#8d7aff"
+        },
+        {
+          "id": "textColor",
+          "label": "Text color",
+          "type": "color",
+          "default": "#f4f5fb"
+        },
+        {
+          "id": "showNames",
+          "label": "Show speaker names",
+          "type": "toggle",
+          "default": true
+        }
+      ]
+    },
+    {
+      "id": "opening",
+      "label": "Opening question",
+      "scope": "composition",
+      "card": "title",
+      "fields": [
+        {
+          "id": "showTitle",
+          "label": "Show opening card",
+          "type": "toggle",
+          "default": true
+        },
+        {
+          "id": "title",
+          "label": "Lead question",
+          "type": "textarea",
+          "default": "What happens next?"
+        },
+        {
+          "id": "subtitle",
+          "label": "Context line",
+          "type": "textarea",
+          "default": "A conversation about the ideas shaping our future."
+        },
+        {
+          "id": "titleDuration",
+          "label": "Duration",
+          "type": "number",
+          "default": 3.5,
+          "min": 0.1,
+          "max": 30
+        }
+      ]
+    },
+    {
+      "id": "closing",
+      "label": "Closing thought",
+      "scope": "composition",
+      "card": "ending",
+      "fields": [
+        {
+          "id": "showEnding",
+          "label": "Show closing card",
+          "type": "toggle",
+          "default": true
+        },
+        {
+          "id": "endingText",
+          "label": "Closing line",
+          "type": "textarea",
+          "default": "Keep asking better questions."
+        },
+        {
+          "id": "endingDuration",
+          "label": "Duration",
+          "type": "number",
+          "default": 3,
+          "min": 0.1,
+          "max": 30
+        }
+      ]
+    },
+    {
+      "id": "conversation",
+      "label": "Conversation cue",
+      "scope": "clip",
+      "description": "Give each clip its own question, answer, or takeaway.",
+      "fields": [
+        {
+          "id": "segmentType",
+          "label": "Segment type",
+          "type": "select",
+          "default": "answer",
+          "options": [
+            { "value": "question", "label": "Question" },
+            { "value": "answer", "label": "Answer" },
+            { "value": "insight", "label": "Insight" }
+          ]
+        },
+        {
+          "id": "prompt",
+          "label": "On-screen prompt",
+          "type": "textarea",
+          "default": "",
+          "optional": true,
+          "help": "A short question or idea shown above the speaker name."
+        },
+        {
+          "id": "speakerRole",
+          "label": "Speaker role",
+          "type": "text",
+          "default": "",
+          "optional": true,
+          "help": "For example: Researcher, Founder, or Host."
+        },
+        {
+          "id": "keyPoint",
+          "label": "Key point",
+          "type": "text",
+          "default": "",
+          "optional": true,
+          "help": "A short highlight shown in the side rail."
+        }
+      ]
+    }
+  ]
+}
