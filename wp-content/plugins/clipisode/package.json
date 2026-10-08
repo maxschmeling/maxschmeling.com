@@ -1,6 +1,6 @@
 {
 	"name": "clipisode",
-	"version": "0.1.0",
+	"version": "0.1.1",
 	"private": true,
 	"description": "Clipisode WordPress plugin",
 	"scripts": {
@@ -10,6 +10,7 @@
 		"lint:js": "wp-scripts lint-js",
 		"lint:css": "wp-scripts lint-style",
 		"plugin": "wp-scripts build && wp-scripts plugin-zip",
+		"release": "./bin/release",
 		"test:js": "wp-scripts test-unit-js",
 		"test:js:watch": "wp-scripts test-unit-js --watch",
 		"render:server": "node scripts/local-renderer.mjs",
