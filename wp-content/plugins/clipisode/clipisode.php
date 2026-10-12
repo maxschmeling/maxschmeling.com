@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Clipisode
  * Description: Collect, curate, and publish user-generated video content.
- * Version: 0.3.0
+ * Version: 0.4.1
  * Author: Clipisode
  * Text Domain: clipisode
  * Requires at least: 6.6
@@ -11,12 +11,13 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'CLIPISODE_VERSION', '0.3.0' );
+define( 'CLIPISODE_VERSION', '0.4.1' );
 define( 'CLIPISODE_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'CLIPISODE_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 
 require_once CLIPISODE_PLUGIN_DIR . 'includes/class-database.php';
 require_once CLIPISODE_PLUGIN_DIR . 'includes/class-post-types.php';
+require_once CLIPISODE_PLUGIN_DIR . 'includes/class-invitation-styles.php';
 require_once CLIPISODE_PLUGIN_DIR . 'includes/class-media.php';
 require_once CLIPISODE_PLUGIN_DIR . 'includes/class-composition.php';
 require_once CLIPISODE_PLUGIN_DIR . 'includes/class-renderer.php';
