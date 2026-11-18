@@ -169,6 +169,73 @@ class Clipisode_Post_Types {
 		self::$flow_topic_context = null;
 	}
 
+	const FLOW_RENDER_CACHE_GROUP = 'clipisode_flow';
+
+	/**
+	 * do_blocks() for an invitation-flow screen, memoised in the object cache.
+	 *
+	 * The public flow renders every screen in the theme on every request — ten
+	 * do_blocks() passes over full block trees, each walking the block parser
+	 * and running the render_block filter chain. Screens change only when an
+	 * author edits one in the block editor, so nearly all of that work is
+	 * repeated identically.
+	 *
+	 * This matters even though the flow response is itself edge-cached: a
+	 * 30-minute page-cache TTL means misses and revalidations still reach PHP,
+	 * ?screen= variants bypass the warm entry, and the first request after any
+	 * purge pays full price. VIP's object cache is shared across web servers,
+	 * so one render warms every one of them.
+	 *
+	 * The cache key covers everything the output depends on:
+	 *
+	 *   - the raw block markup, hashed. Covers author edits without needing to
+	 *     read post_modified separately, and covers the healing rewrites the
+	 *     flow template performs before calling this.
+	 *   - the topic context, because token substitution ({topic_title},
+	 *     {invitation_url}, {network}, …) happens inside the render_block
+	 *     filter, making output per-topic and per-link rather than per-screen.
+	 *   - the resolved intro video URL, for the same reason.
+	 *   - CLIPISODE_VERSION, so a plugin release that changes the filter chain
+	 *     cannot serve output produced by the previous one.
+	 *
+	 * Anything request-specific — the nonce, injected form widgets, the QR
+	 * mount, the live invitation URL — is applied by the caller AFTER this
+	 * returns, and so is deliberately outside the cached value.
+	 */
+	public static function render_flow_screen( string $screen_type, string $content ): string {
+		if ( $content === '' ) {
+			return '';
+		}
+
+		$key = 'screen_' . md5(
+			implode(
+				'|',
+				[
+					$screen_type,
+					CLIPISODE_VERSION,
+					md5( $content ),
+					md5( (string) wp_json_encode( self::get_flow_topic_context() ) ),
+					self::get_flow_intro_video_url(),
+				]
+			)
+		);
+
+		$cached = wp_cache_get( $key, self::FLOW_RENDER_CACHE_GROUP );
+		if ( is_string( $cached ) ) {
+			return $cached;
+		}
+
+		$rendered = do_blocks( $content );
+
+		// Content-hashed keys are never updated in place, only superseded, so a
+		// TTL is what stops superseded entries accumulating. Twelve hours is
+		// comfortably longer than any edge-cache lifetime, so a warm entry
+		// outlives the responses built from it.
+		wp_cache_set( $key, $rendered, self::FLOW_RENDER_CACHE_GROUP, 12 * HOUR_IN_SECONDS );
+
+		return $rendered;
+	}
+
 	/**
 	 * Replaces {host_name} / {topic_title} tokens (and a small set of other
 	 * known keys) inside a string with the current topic's values. Used in
@@ -218,7 +285,7 @@ class Clipisode_Post_Types {
 		$source = CLIPISODE_PLUGIN_DIR . 'assets/themes/default/icon.png';
 		if ( ! file_exists( $source ) ) {
 			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-				error_log( '[clipisode] Default logo source missing: ' . $source );
+				error_log( '[clipisode] Default logo source missing: ' . $source ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Guarded by WP_DEBUG; deliberate failure diagnostic, see method docblock.
 			}
 			return 0;
 		}
@@ -234,7 +301,7 @@ class Clipisode_Post_Types {
 		$uploads = wp_upload_dir();
 		if ( ! empty( $uploads['error'] ) ) {
 			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-				error_log( '[clipisode] wp_upload_dir error: ' . $uploads['error'] );
+				error_log( '[clipisode] wp_upload_dir error: ' . $uploads['error'] ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Guarded by WP_DEBUG; deliberate failure diagnostic, see method docblock.
 			}
 			return 0;
 		}
@@ -243,7 +310,7 @@ class Clipisode_Post_Types {
 		$dest_path     = trailingslashit( $uploads['path'] ) . $dest_filename;
 		if ( ! copy( $source, $dest_path ) ) {
 			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-				error_log( '[clipisode] Failed to copy logo to uploads: ' . $dest_path );
+				error_log( '[clipisode] Failed to copy logo to uploads: ' . $dest_path ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Guarded by WP_DEBUG; deliberate failure diagnostic, see method docblock.
 			}
 			return 0;
 		}
@@ -261,7 +328,7 @@ class Clipisode_Post_Types {
 
 		if ( is_wp_error( $attachment_id ) || ! $attachment_id ) {
 			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-				error_log( '[clipisode] wp_insert_attachment failed for logo' );
+				error_log( '[clipisode] wp_insert_attachment failed for logo' ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Guarded by WP_DEBUG; deliberate failure diagnostic, see method docblock.
 			}
 			return 0;
 		}
@@ -295,7 +362,7 @@ class Clipisode_Post_Types {
 		$source = CLIPISODE_PLUGIN_DIR . 'assets/editor/sample/sample-qr.png';
 		if ( ! file_exists( $source ) ) {
 			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-				error_log( '[clipisode] Default QR source missing: ' . $source );
+				error_log( '[clipisode] Default QR source missing: ' . $source ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Guarded by WP_DEBUG; deliberate failure diagnostic, see method docblock.
 			}
 			return 0;
 		}
@@ -307,7 +374,7 @@ class Clipisode_Post_Types {
 		$uploads = wp_upload_dir();
 		if ( ! empty( $uploads['error'] ) ) {
 			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-				error_log( '[clipisode] wp_upload_dir error: ' . $uploads['error'] );
+				error_log( '[clipisode] wp_upload_dir error: ' . $uploads['error'] ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Guarded by WP_DEBUG; deliberate failure diagnostic, see method docblock.
 			}
 			return 0;
 		}
@@ -316,7 +383,7 @@ class Clipisode_Post_Types {
 		$dest_path     = trailingslashit( $uploads['path'] ) . $dest_filename;
 		if ( ! copy( $source, $dest_path ) ) {
 			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-				error_log( '[clipisode] Failed to copy QR to uploads: ' . $dest_path );
+				error_log( '[clipisode] Failed to copy QR to uploads: ' . $dest_path ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Guarded by WP_DEBUG; deliberate failure diagnostic, see method docblock.
 			}
 			return 0;
 		}
@@ -334,7 +401,7 @@ class Clipisode_Post_Types {
 
 		if ( is_wp_error( $attachment_id ) || ! $attachment_id ) {
 			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-				error_log( '[clipisode] wp_insert_attachment failed for QR' );
+				error_log( '[clipisode] wp_insert_attachment failed for QR' ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Guarded by WP_DEBUG; deliberate failure diagnostic, see method docblock.
 			}
 			return 0;
 		}
@@ -570,10 +637,14 @@ class Clipisode_Post_Types {
 		// One-time success/error notice from the previous request, if
 		// the user just clicked a button. We pass status via a query
 		// arg so the notice survives the redirect after admin_post.
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only query arg used for routing or display; changes no state.
 		$result = isset( $_GET['clipisode_tool_result'] )
+			// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only query arg used for routing or display; changes no state.
 			? sanitize_key( wp_unslash( $_GET['clipisode_tool_result'] ) )
 			: '';
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only query arg used for routing or display; changes no state.
 		$detail = isset( $_GET['clipisode_tool_detail'] )
+			// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only query arg used for routing or display; changes no state.
 			? sanitize_text_field( wp_unslash( $_GET['clipisode_tool_detail'] ) )
 			: '';
 
@@ -838,11 +909,15 @@ class Clipisode_Post_Types {
 	}
 
 	public static function get_brand_terms_id(): ?int {
+		// phpcs:ignore WordPressVIPMinimum.Functions.RestrictedFunctions.get_posts_get_posts -- suppress_filters is set to false below, which is what the sniff asks for; it cannot see array args.
 		$posts = get_posts( [
+			'suppress_filters' => false,
 			'post_type'   => 'clipisode_terms',
 			'post_status' => 'publish',
 			'numberposts' => 1,
+			// phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key, WordPress.DB.SlowDBQuery.slow_db_query_meta_value -- Meta lookup over a hand-authored CPT bounded to tens of rows, not a content-scale table.
 			'meta_key'    => self::TERMS_TYPE_META,
+			// phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value -- Paired with the meta_key above; bounded hand-authored CPT.
 			'meta_value'  => 'brand',
 		] );
 
@@ -850,11 +925,15 @@ class Clipisode_Post_Types {
 	}
 
 	public static function get_default_invitation_id(): ?int {
+		// phpcs:ignore WordPressVIPMinimum.Functions.RestrictedFunctions.get_posts_get_posts -- suppress_filters is set to false below, which is what the sniff asks for; it cannot see array args.
 		$posts = get_posts( [
+			'suppress_filters' => false,
 			'post_type'   => 'clipisode_invite',
 			'post_status' => 'publish',
 			'numberposts' => 1,
+			// phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key, WordPress.DB.SlowDBQuery.slow_db_query_meta_value -- Meta lookup over a hand-authored CPT bounded to tens of rows, not a content-scale table.
 			'meta_key'    => self::DEFAULT_INVITATION_META,
+			// phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value -- Paired with the meta_key above; bounded hand-authored CPT.
 			'meta_value'  => '1',
 		] );
 
@@ -1024,12 +1103,16 @@ class Clipisode_Post_Types {
 			return null;
 		}
 
+		// phpcs:ignore WordPressVIPMinimum.Functions.RestrictedFunctions.get_posts_get_posts -- suppress_filters is set to false below, which is what the sniff asks for; it cannot see array args.
 		$ids = get_posts( [
+			'suppress_filters' => false,
 			'post_type'   => 'clipisode_screen',
 			'post_status' => [ 'publish', 'draft', 'pending', 'private' ],
 			'numberposts' => 1,
 			'post_parent' => $theme_id,
+			// phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key, WordPress.DB.SlowDBQuery.slow_db_query_meta_value -- Meta lookup over a hand-authored CPT bounded to tens of rows, not a content-scale table.
 			'meta_key'    => self::SCREEN_TYPE_META,
+			// phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value -- Paired with the meta_key above; bounded hand-authored CPT.
 			'meta_value'  => $screen_type,
 			'fields'      => 'ids',
 		] );
@@ -1048,12 +1131,20 @@ class Clipisode_Post_Types {
 			return [];
 		}
 
+		// Bounded rather than -1. A theme holds at most one screen post per
+		// type, so the real cardinality here is 0 or 1; anything above that is
+		// already a duplicate this function exists to clean up. 100 is far
+		// beyond any plausible count while keeping the query bounded.
+		// phpcs:ignore WordPressVIPMinimum.Functions.RestrictedFunctions.get_posts_get_posts -- suppress_filters is set to false below, which is what the sniff asks for; it cannot see array args.
 		$ids = get_posts( [
+			'suppress_filters' => false,
 			'post_type'   => 'clipisode_screen',
 			'post_status' => 'trash',
-			'numberposts' => -1,
+			'numberposts' => 100,
 			'post_parent' => $theme_id,
+			// phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key, WordPress.DB.SlowDBQuery.slow_db_query_meta_value -- Meta lookup over a hand-authored CPT bounded to tens of rows, not a content-scale table.
 			'meta_key'    => self::SCREEN_TYPE_META,
+			// phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value -- Paired with the meta_key above; bounded hand-authored CPT.
 			'meta_value'  => $screen_type,
 			'fields'      => 'ids',
 		] );
@@ -1451,6 +1542,7 @@ class Clipisode_Post_Types {
 	private static function default_screen_content( string $screen_type ): string {
 		$file = CLIPISODE_PLUGIN_DIR . "assets/themes/default/{$screen_type}.html";
 		if ( file_exists( $file ) ) {
+			// phpcs:ignore WordPressVIPMinimum.Performance.FetchingRemoteData.FileGetContentsUnknown -- Reads a file shipped inside this plugin, never a remote URL.
 			$content = file_get_contents( $file );
 			if ( $content !== false && trim( $content ) !== '' ) {
 				$content = self::strip_doc_comments( $content );
@@ -1631,6 +1723,7 @@ class Clipisode_Post_Types {
 		if ( ! file_exists( $path ) ) {
 			return [];
 		}
+		// phpcs:ignore WordPressVIPMinimum.Performance.FetchingRemoteData.FileGetContentsUnknown -- Reads a file shipped inside this plugin, never a remote URL.
 		$raw = file_get_contents( $path );
 		if ( ! is_string( $raw ) || $raw === '' ) {
 			return [];
@@ -1843,6 +1936,7 @@ class Clipisode_Post_Types {
 	 * an edit-screen request, bail."
 	 */
 	private static function current_screen_post_type(): string {
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only query arg used for routing or display; changes no state.
 		$post_id = isset( $_GET['post'] ) ? (int) $_GET['post'] : 0;
 		if ( $post_id ) {
 			$post = get_post( $post_id );
@@ -1850,7 +1944,9 @@ class Clipisode_Post_Types {
 				return $post->post_type;
 			}
 		}
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only query arg used for routing or display; changes no state.
 		if ( isset( $_GET['post_type'] ) ) {
+			// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only query arg used for routing or display; changes no state.
 			return sanitize_key( wp_unslash( $_GET['post_type'] ) );
 		}
 		return '';
@@ -2316,6 +2412,7 @@ class Clipisode_Post_Types {
 		if ( $post_type !== 'clipisode_screen' ) {
 			return;
 		}
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only query arg used for routing or display; changes no state.
 		$post_id = isset( $_GET['post'] ) ? (int) $_GET['post'] : 0;
 		$screen_type = $post_id ? (string) get_post_meta( $post_id, self::SCREEN_TYPE_META, true ) : '';
 		if ( $post_id > 0 && $screen_type !== '' ) {
@@ -3161,11 +3258,15 @@ body.editor-styles-wrapper .clipisode-closed-root .wp-block-button__link) {
 	}
 
 	public static function get_default_preview_id(): ?int {
+		// phpcs:ignore WordPressVIPMinimum.Functions.RestrictedFunctions.get_posts_get_posts -- suppress_filters is set to false below, which is what the sniff asks for; it cannot see array args.
 		$posts = get_posts( [
+			'suppress_filters' => false,
 			'post_type'   => 'clipisode_preview',
 			'post_status' => 'publish',
 			'numberposts' => 1,
+			// phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key, WordPress.DB.SlowDBQuery.slow_db_query_meta_value -- Meta lookup over a hand-authored CPT bounded to tens of rows, not a content-scale table.
 			'meta_key'    => self::DEFAULT_PREVIEW_META,
+			// phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value -- Paired with the meta_key above; bounded hand-authored CPT.
 			'meta_value'  => '1',
 		] );
 
@@ -3215,6 +3316,7 @@ BLOCKS;
 
 		$template_path = CLIPISODE_PLUGIN_DIR . 'assets/templates/default-brand-terms.html';
 		$content       = file_exists( $template_path )
+			// phpcs:ignore WordPressVIPMinimum.Performance.FetchingRemoteData.FileGetContentsUnknown -- Reads a file shipped inside this plugin, never a remote URL.
 			? file_get_contents( $template_path )
 			: '<p>By submitting a video you grant the brand a perpetual, worldwide license to use your submission.</p>';
 

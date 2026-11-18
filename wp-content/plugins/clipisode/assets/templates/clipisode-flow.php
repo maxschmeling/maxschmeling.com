@@ -1,14 +1,15 @@
 <?php
 /**
- * Template for /clipisode-flow/{slug} — guest-facing invitation flow rendered
+ * Template for /{prefix}/{slug} — the guest-facing invitation flow, rendered
  * from the clipisode_screen CPT.
  *
- * This is the parallel "v2" pipeline being built alongside the legacy
- * /invitation/{slug} flow. The legacy URL keeps working unchanged while this
- * one is under construction; once IAPI screen transitions and upload survival
- * are wired up here we'll repoint /invitation/{slug} at this template.
+ * This is the only invitation flow. The URL prefix comes from the
+ * clipisode_invitation_prefix option (default "invitation") so non-English
+ * sites can serve it at a locale-appropriate path. The earlier stage-block
+ * pipeline, and the hardcoded /clipisode-flow/ route this template was built
+ * on, were both removed — see docs/specs/shipped/kill-v1-invitation-flow.md.
  *
- * Step 9 wiring summary
+ * Wiring summary
  *   Saved screen content uses only plain core blocks (Group/Heading/Paragraph
  *   /Button) so the editor never throws "unexpected or invalid content".
  *   Three pieces of dynamic infrastructure live here, OUTSIDE the screen
@@ -27,13 +28,36 @@
 
 defined( 'ABSPATH' ) || exit;
 
+// phpcs:disable WordPress.DB.DirectDatabaseQuery -- Custom tables have no WP_Query equivalent, and these are writes or single-row key lookups. Full reasoning in includes/class-rest-api.php.
+
+/*
+ * The whole template body runs inside a closure.
+ *
+ * WordPress includes a template at global scope, so without this every working
+ * variable here ($slug, $link, $topic, $screens, ...) would become a global.
+ * That pollutes the global namespace on every invitation request, and one of
+ * them — $link — collides with a global WordPress itself uses. VIP's
+ * PrefixAllGlobals and GlobalVariablesOverride sniffs both flag it, and they
+ * are right to.
+ *
+ * A closure makes them locals. $wpdb is pulled in explicitly below; it is the
+ * only WordPress global this template touches, which is what made the wrapper
+ * safe to add (verified before the change by checking every WP global name
+ * against the declarations in this file).
+ *
+ * `exit` inside the closure still terminates the request exactly as before.
+ * There is no top-level `return` to reinterpret — the only `return` statements
+ * in the file are inside the inline <script> block near the end.
+ */
+( static function (): void {
+
 global $wpdb;
 
 $slug = sanitize_text_field( get_query_var( 'clipisode_invite' ) );
 
 $links_table = $wpdb->prefix . 'clipisode_invitation_links';
 $link        = $wpdb->get_row( $wpdb->prepare(
-	"SELECT * FROM $links_table WHERE slug = %s", $slug
+	'SELECT * FROM %i WHERE slug = %s', $links_table, $slug
 ) );
 
 if ( ! $link ) {
@@ -52,7 +76,7 @@ if ( $link->status !== 'open' ) {
 
 $topics_table = $wpdb->prefix . 'clipisode_topics';
 $topic        = $wpdb->get_row( $wpdb->prepare(
-	"SELECT * FROM $topics_table WHERE id = %d", $link->topic_id
+	'SELECT * FROM %i WHERE id = %d', $topics_table, $link->topic_id
 ) );
 
 if ( ! $topic || ! $topic->invitation_id ) {
@@ -68,7 +92,9 @@ $theme_id = (int) $topic->invitation_id;
 //   1) explicit ?network=x|twitter|instagram|ig query override
 //   2) in-app browser UA sniff (Instagram/Twitter)
 $social_network = '';
+// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only query arg used for routing or display; changes no state.
 $network_param  = isset( $_GET['network'] )
+	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only query arg used for routing or display; changes no state.
 	? sanitize_key( wp_unslash( (string) $_GET['network'] ) )
 	: '';
 if ( in_array( $network_param, [ 'instagram', 'ig' ], true ) ) {
@@ -78,6 +104,7 @@ if ( in_array( $network_param, [ 'instagram', 'ig' ], true ) ) {
 }
 if ( $social_network === '' ) {
 	$user_agent = isset( $_SERVER['HTTP_USER_AGENT'] )
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPressVIPMinimum.Variables.RestrictedVariables.cache_constraints___SERVER__HTTP_USER_AGENT__ -- Server-side UA sniffing, and the sniffs are right that it breaks full-page caching. Being removed; see docs/specs/planned/cacheable-intro-screen-selection.md.
 		? (string) wp_unslash( $_SERVER['HTTP_USER_AGENT'] )
 		: '';
 	if ( stripos( $user_agent, 'Instagram' ) !== false ) {
@@ -157,6 +184,7 @@ foreach ( [ 'brand_terms_id', 'custom_terms_id' ] as $field ) {
 	if ( ! $tp || $tp->post_status !== 'publish' ) {
 		continue;
 	}
+	// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Applying WordPress's own the_content filter, not declaring a hook.
 	$body = apply_filters( 'the_content', $tp->post_content );
 	if ( is_string( $body ) && $body !== '' ) {
 		$terms_html_parts[] = '<section class="clipisode-terms-section">'
@@ -184,6 +212,7 @@ if ( $terms_html === '' ) {
 // however are conventionally hyphenated, so we accept both hyphens and
 // underscores in the query param and normalize to the underscore form before
 // matching.
+// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only query arg used for routing or display; changes no state.
 $raw_screen   = isset( $_GET['screen'] ) ? sanitize_key( wp_unslash( $_GET['screen'] ) ) : '';
 $screen_param = str_replace( '-', '_', $raw_screen );
 $screen_type  = $screen_param;
@@ -197,6 +226,7 @@ $screen_type  = $screen_param;
 // goes to the right layout" call; client-side checks would race the
 // initial render and cause a flash.
 if ( $screen_type === '' ) {
+	// phpcs:ignore WordPressVIPMinimum.Functions.RestrictedFunctions.wp_is_mobile_wp_is_mobile -- Correct diagnosis: this breaks edge caching. Being replaced with a client-side choice; see docs/specs/planned/cacheable-intro-screen-selection.md.
 	$screen_type = ( ! wp_is_mobile() ) ? 'intro_desktop' : 'intro';
 }
 if ( ! in_array( $screen_type, Clipisode_Post_Types::SCREEN_TYPES, true ) ) {
@@ -257,6 +287,7 @@ foreach ( Clipisode_Post_Types::SCREEN_TYPES as $st ) {
 				$template_path = CLIPISODE_PLUGIN_DIR
 					. 'assets/themes/default/' . $st . '.html';
 				$fresh = file_exists( $template_path )
+					// phpcs:ignore WordPressVIPMinimum.Performance.FetchingRemoteData.FileGetContentsUnknown -- Reads a file shipped inside this plugin, never a remote URL.
 					? file_get_contents( $template_path )
 					: '';
 				if ( $fresh !== '' ) {
@@ -287,6 +318,7 @@ foreach ( Clipisode_Post_Types::SCREEN_TYPES as $st ) {
 				$template_path = CLIPISODE_PLUGIN_DIR
 					. 'assets/themes/default/' . $st . '.html';
 				$fresh = file_exists( $template_path )
+					// phpcs:ignore WordPressVIPMinimum.Performance.FetchingRemoteData.FileGetContentsUnknown -- Reads a file shipped inside this plugin, never a remote URL.
 					? file_get_contents( $template_path )
 					: '';
 				if ( $fresh !== '' ) {
@@ -312,11 +344,27 @@ if ( empty( $screens[ $screen_type ] ) ) {
 	exit;
 }
 
-// Track click on the link itself, not on individual screen views, so the
-// click count stays comparable with the legacy /invitation/{slug} flow.
-$wpdb->query( $wpdb->prepare(
-	"UPDATE $links_table SET clicks = clicks + 1 WHERE id = %d", $link->id
-) );
+// Pageview counting deliberately does NOT happen here.
+//
+// This template previously ran `UPDATE ... SET clicks = clicks + 1` on every
+// guest request. Two reasons that had to go:
+//
+//   1. It serialised every visitor to one link behind a single row lock. A
+//      brand sharing an invitation to a large audience is exactly when the
+//      flow must stay fast, and that is exactly when the contention peaks.
+//   2. It cannot survive edge caching. This response is now designed to be
+//      served from VIP's page cache (30 min TTL, stale up to 12 h), so PHP
+//      runs for a small and unpredictable fraction of real views. A counter
+//      incremented here measures cache misses, not audience — a number
+//      that looks authoritative and silently lies.
+//
+// Replacement, by tier: base installs read pageviews from the site's own
+// analytics (Jetpack Stats) rather than keeping a private counter; VIP
+// installs log to and report from Parse.ly. The `clicks` column stays for
+// now so historical values survive, but nothing writes to it.
+//
+// See docs/decision-log.md, "Analytics: stop counting pageviews in the
+// database".
 
 // Upload nonce keyed to this slug. Same shape the legacy
 // /invitation/{slug} flow used (action == 'clipisode_upload_' . $slug)
@@ -626,6 +674,7 @@ if ( $screen_type === 'intro_desktop' ) {
 	$qr_script_url = plugins_url( 'build/qr/view.js', CLIPISODE_PLUGIN_DIR . 'clipisode.php' );
 	$qr_version    = '0.1.0';
 	if ( file_exists( $qr_asset_path ) ) {
+		// phpcs:ignore WordPressVIPMinimum.Files.IncludingFile.UsingVariable -- Path is built from CLIPISODE_PLUGIN_DIR and a literal; this is the wp-scripts asset manifest.
 		$qr_asset = include $qr_asset_path;
 		if ( is_array( $qr_asset ) && ! empty( $qr_asset['version'] ) ) {
 			$qr_version = (string) $qr_asset['version'];
@@ -640,8 +689,10 @@ if ( $screen_type === 'intro_desktop' ) {
 	);
 }
 
+// phpcs:ignore WordPressVIPMinimum.UserExperience.AdminBarRemoval.RemovalDetected -- This template emits a standalone guest document, not a theme page; the admin bar would break the phone layout.
 show_admin_bar( false );
 
+// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only query arg used for routing or display; changes no state.
 $clipisode_flow_show_debug = isset( $_GET['clipisode_debug'] ) && '1' === (string) sanitize_text_field( wp_unslash( $_GET['clipisode_debug'] ) );
 if ( ! $clipisode_flow_show_debug && defined( 'WP_DEBUG' ) && WP_DEBUG && defined( 'WP_DEBUG_DISPLAY' ) && WP_DEBUG_DISPLAY ) {
 	$clipisode_flow_show_debug = true;
@@ -1544,7 +1595,10 @@ $close_svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width=
 		// per state (idle / pending / submitting / error / done) while
 		// the static markup still carries the author's IDLE label as a
 		// no-flash first paint.
-		$rendered_content = do_blocks( $content );
+		// Memoised in the object cache — see
+		// Clipisode_Post_Types::render_flow_screen(). Everything below this
+		// line is request-specific post-processing and stays uncached.
+		$rendered_content = Clipisode_Post_Types::render_flow_screen( $st, $content );
 		if ( $st === 'name' ) {
 			$rendered_content = preg_replace_callback(
 				'#(<h[1-6]\b[^>]*class="[^"]*\bclipisode-name-heading\b[^"]*"[^>]*>)(.*?)(</h[1-6]>)#is',
@@ -1604,7 +1658,7 @@ $close_svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width=
 			// the bundle disabled at least see something explanatory
 			// instead of an empty box.
 			$qr_html = '<div class="clipisode-introd-qr"'
-				. ' data-clipisode-qr-url="' . esc_attr( $current_url ) . '"'
+				. ' data-clipisode-qr-url="' . esc_url( $current_url ) . '"'
 				. ' role="img"'
 				. ' aria-label="' . esc_attr__( 'QR code linking to this invitation', 'clipisode' ) . '">'
 				. '<span class="clipisode-introd-qr-fallback">'
@@ -1627,7 +1681,7 @@ $close_svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width=
 					. '</div>';
 			} else {
 				$video_html = '<div class="clipisode-introd-video-fallback">'
-					. esc_html__( 'No intro video for this topic.', 'clipisode' )
+					. esc_html__( 'Add your voice to the conversation.', 'clipisode' )
 					. '</div>';
 			}
 
@@ -2120,9 +2174,16 @@ $close_svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width=
 				novalidate
 			>
 				<?php
+				// Each fragment below is assembled from literal markup, esc_html__()/
+				// esc_attr__() strings, and esc_attr()'d computed class and style
+				// values. None carries raw request or topic data.
+				// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 				echo $before_button;
+				// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 				echo $fileinfo_html . $progress_html . $name_field_html . $handle_field_html;
+				// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 				echo $button_open . $button_rest;
+				// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 				echo $error_html;
 				?>
 			</form>
@@ -2302,14 +2363,21 @@ $close_svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width=
 				novalidate
 			>
 				<?php
+				// Same construction as the Name screen above: literals, translated
+				// strings, and esc_attr()'d values only.
+				// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 				echo $email_before_submit;
+				// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 				echo $email_field_html;
+				// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 				echo $email_submit_open . $email_submit_rest;
+				// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 				echo $email_error_html;
 				?>
 			</form>
 			<?php
 		} else {
+			// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Block-rendered HTML from render_flow_screen(); escaping would print markup as text.
 			echo $rendered_content;
 		}
 		?>
@@ -2344,8 +2412,8 @@ $close_svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width=
 		class="clipisode-terms-close"
 		aria-label="<?php esc_attr_e( 'Close terms', 'clipisode' ); ?>"
 		data-wp-on--click="actions.closeTerms"
-	><?php echo $close_svg; // Inline SVG markup; no user data. ?></button>
-	<div class="clipisode-terms-content"><?php echo $terms_html; // KSES is applied by the_content filter chain. ?></div>
+	><?php echo $close_svg; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Inline SVG markup defined in this file; no user data. ?></button>
+	<div class="clipisode-terms-content"><?php echo $terms_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Built from the_content() output, so KSES has already run. ?></div>
 </div>
 
 <?php
@@ -2579,3 +2647,6 @@ wp_footer();
 ?>
 </body>
 </html>
+<?php
+
+} )();
