@@ -15,7 +15,8 @@ class Clipisode_Admin {
 			30
 		);
 
-		add_submenu_page( 'clipisode', 'Topics', 'Topics', 'manage_options', 'clipisode', [ $this, 'render_page' ] );
+		add_submenu_page( 'clipisode', 'Home', 'Home', 'manage_options', 'clipisode', [ $this, 'render_page' ] );
+		add_submenu_page( 'clipisode', 'Topics', 'Topics', 'manage_options', 'clipisode-topics', [ $this, 'render_page' ] );
 		add_submenu_page( 'clipisode', 'Replies', 'Replies', 'manage_options', 'clipisode-replies', [ $this, 'render_page' ] );
 		add_submenu_page( 'clipisode', 'Clipisodes', 'Clipisodes', 'manage_options', 'clipisode-clipisodes', [ $this, 'render_page' ] );
 		add_submenu_page( 'clipisode', 'Media', 'Media', 'manage_options', 'clipisode-media', [ $this, 'render_page' ] );
@@ -31,8 +32,10 @@ class Clipisode_Admin {
 
 	public function redirect_cpt_list(): void {
 		global $pagenow;
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Reads a query arg to route an admin screen; changes no state.
 		if ( $pagenow === 'edit.php' && isset( $_GET['post_type'] ) ) {
-			$type = $_GET['post_type'];
+			// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Same read as the condition above.
+			$type = sanitize_key( wp_unslash( $_GET['post_type'] ) );
 			if ( $type === 'clipisode_invite' ) {
 				wp_safe_redirect( admin_url( 'admin.php?page=clipisode-themes' ) );
 				exit;
@@ -44,6 +47,7 @@ class Clipisode_Admin {
 		}
 	}
 
+	// phpcs:ignore VariableAnalysis.CodeAnalysis.VariableAnalysis.UnusedVariable -- Signature is fixed by the admin_enqueue_scripts contract.
 	public function maybe_enqueue( string $hook_suffix ): void {
 		$screen = get_current_screen();
 		if ( ! $screen || strpos( $screen->id, 'clipisode' ) === false ) {
@@ -64,6 +68,7 @@ class Clipisode_Admin {
 			return;
 		}
 
+		// phpcs:ignore WordPressVIPMinimum.Files.IncludingFile.UsingVariable -- Path is built from CLIPISODE_PLUGIN_DIR and a literal; this is the wp-scripts asset manifest.
 		$asset = require $asset_file;
 
 		wp_enqueue_script(
@@ -82,6 +87,7 @@ class Clipisode_Admin {
 		);
 
 		$config = [
+			// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only query arg used for routing or display; changes no state.
 			'page'                  => isset( $_GET['page'] ) ? sanitize_text_field( $_GET['page'] ) : 'clipisode',
 			'home_url'              => esc_url_raw( home_url( '/' ) ),
 			'rest_root'             => esc_url_raw( rest_url() ),

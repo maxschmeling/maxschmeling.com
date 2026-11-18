@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Clipisode
  * Description: Collect, curate, and publish user-generated video content.
- * Version: 0.4.2
+ * Version: 0.5.0
  * Author: Clipisode
  * Text Domain: clipisode
  * Requires at least: 6.6
@@ -11,7 +11,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'CLIPISODE_VERSION', '0.4.2' );
+define( 'CLIPISODE_VERSION', '0.5.0' );
 define( 'CLIPISODE_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'CLIPISODE_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 
@@ -26,6 +26,7 @@ require_once CLIPISODE_PLUGIN_DIR . 'includes/class-admin.php';
 require_once CLIPISODE_PLUGIN_DIR . 'includes/class-rest-api.php';
 require_once CLIPISODE_PLUGIN_DIR . 'includes/class-invitation.php';
 require_once CLIPISODE_PLUGIN_DIR . 'includes/class-preview.php';
+require_once CLIPISODE_PLUGIN_DIR . 'includes/class-onboarding.php';
 
 register_activation_hook( __FILE__, [ Clipisode_Database::class, 'activate' ] );
 register_activation_hook( __FILE__, [ Clipisode_Post_Types::class, 'ensure_default_logo_attachment' ] );
@@ -59,11 +60,25 @@ add_action( 'init', function (): void {
 	}
 }, 99 );
 
+/**
+ * Schema self-heal, at priority 0 so tables exist before anything queries them.
+ *
+ * Activation hooks fire only on activate/deactivate — never on an in-place
+ * plugin update, and only once against a single site when network-activated on
+ * multisite. Relying on them meant a schema change could never reach an
+ * existing site, and that subsites other than the one activated from had no
+ * tables at all. Clipisode_Database::maybe_upgrade() covers every case from one
+ * code path; see its docblock.
+ */
+add_action( 'init', [ Clipisode_Database::class, 'maybe_upgrade' ], 0 );
+add_action( 'wp_initialize_site', [ Clipisode_Database::class, 'initialize_site' ], 99 );
+
 add_action( 'init', [ Clipisode_Post_Types::class, 'register' ] );
-add_action( 'init', [ Clipisode_Database::class, 'maybe_upgrade' ] );
 add_action( 'init', [ new Clipisode_Media(), 'register_hooks' ] );
 add_action( 'admin_menu', [ new Clipisode_Admin(), 'register_menus' ] );
 add_action( 'rest_api_init', [ new Clipisode_REST_API(), 'register_routes' ] );
+add_action( 'rest_api_init', [ new Clipisode_Onboarding(), 'register_routes' ] );
+add_action( 'wp_dashboard_setup', [ new Clipisode_Onboarding(), 'register_widget' ] );
 add_action( 'enqueue_block_assets', [ Clipisode_Post_Types::class, 'enqueue_screen_editor_canvas_styles' ] );
 add_action( 'enqueue_block_editor_assets', [ Clipisode_Post_Types::class, 'enqueue_block_editor_extensions' ] );
 add_filter( 'block_editor_settings_all', [ Clipisode_Post_Types::class, 'filter_screen_editor_font_settings' ], 10, 2 );

@@ -2,6 +2,8 @@
 
 defined( 'ABSPATH' ) || exit;
 
+// phpcs:disable WordPress.DB.DirectDatabaseQuery -- Custom tables have no WP_Query equivalent, and these are writes or single-row key lookups. Full reasoning in includes/class-rest-api.php.
+
 class Clipisode_Media {
 
 	const META_KEY = '_clipisode_managed';
@@ -23,6 +25,7 @@ class Clipisode_Media {
 	}
 
 	public function hide_from_media_grid( array $query ): array {
+		// phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- NOT EXISTS on a single key over the admin Media Library query; the alternative is exposing Clipisode-managed video in the picker.
 		$query['meta_query']   = $query['meta_query'] ?? [];
 		$query['meta_query'][] = [
 			'key'     => self::META_KEY,
@@ -34,6 +37,9 @@ class Clipisode_Media {
 	public function hide_from_media_list( WP_Query $query ): void {
 		global $pagenow;
 		if ( 'upload.php' !== $pagenow ) {
+			return;
+		}
+		if ( ! $query->is_main_query() ) {
 			return;
 		}
 		if ( 'attachment' !== $query->get( 'post_type' ) ) {
@@ -96,13 +102,13 @@ class Clipisode_Media {
 		$table = $wpdb->prefix . 'clipisode_media';
 
 		$children = $wpdb->get_col( $wpdb->prepare(
-			"SELECT id FROM $table WHERE parent_id = %d", $id
+			'SELECT id FROM %i WHERE parent_id = %d', $table, $id
 		) );
 		foreach ( $children as $child_id ) {
 			self::delete( (int) $child_id );
 		}
 
-		$media = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM $table WHERE id = %d", $id ) );
+		$media = $wpdb->get_row( $wpdb->prepare( 'SELECT * FROM %i WHERE id = %d', $table, $id ) );
 		if ( ! $media ) {
 			return;
 		}
