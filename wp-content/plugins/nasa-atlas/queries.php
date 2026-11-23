@@ -73,7 +73,11 @@ add_action('init', static function (): void {
         class NASAImageSearchQuery extends \RemoteDataBlocks\Config\Query\HttpQuery {}
         class NASAImageListQuery extends \RemoteDataBlocks\Config\Query\HttpQuery {}
     }
-    $list = query_config();
+    // Record selectors need a compact preview, not every long description,
+    // generated URL and typed demo field as a separate DataViews column.
+    $search = query_config();
+    $search['output_schema']['type'] = array_intersect_key(fields(), array_flip(['nasa_id', 'title', 'image_url', 'credit', 'date_label']));
+    $list = $search;
     $list['input_schema']['search'] = ['name' => 'Topic', 'type' => 'ui:input', 'default_value' => 'James Webb nebula'];
     $list['input_schema']['limit']['default_value'] = 12;
     $image = register_remote_data_block([
@@ -82,7 +86,7 @@ add_action('init', static function (): void {
         'render_query' => ['query' => query_config(true)],
         'selection_queries' => [
             ['query' => NASAImageListQuery::from_array($list), 'type' => 'list', 'display_name' => 'Browse Webb images'],
-            ['query' => NASAImageSearchQuery::from_array(query_config()), 'type' => 'search', 'display_name' => 'Search NASA archive'],
+            ['query' => NASAImageSearchQuery::from_array($search), 'type' => 'search', 'display_name' => 'Search NASA archive'],
         ],
         'overrides' => [['name' => 'nasa_id_from_url', 'display_name' => 'NASA ID from this page URL', 'help_text' => 'Only on Atlas pages. Other image blocks stay pinned unless opted in.']],
         'patterns' => [

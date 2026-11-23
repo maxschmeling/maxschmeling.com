@@ -2,7 +2,7 @@
 /**
  * Plugin Name: NASA Atlas — Remote Data Blocks Demo
  * Description: An isolated editorial NASA image atlas powered by Remote Data Blocks. No site-wide theme or navigation changes.
- * Version: 1.0.0
+ * Version: 1.0.1
  * Requires at least: 6.7
  * Requires PHP: 8.1
  * Requires Plugins: remote-data-blocks
@@ -11,7 +11,7 @@ declare(strict_types=1);
 namespace MaxSchmeling\NASAAtlas;
 defined('ABSPATH') || exit;
 
-const VERSION = '1.0.0';
+const VERSION = '1.0.1';
 const TEMPLATE = 'nasa-atlas-isolated.php';
 
 require __DIR__ . '/queries.php';
