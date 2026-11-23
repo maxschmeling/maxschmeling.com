@@ -1,0 +1,8 @@
+/* Editor-only canvas styles; never changes the public site or admin interface. */
+.editor-styles-wrapper .atlas-record-facts{display:flex;gap:20px;margin:15px 0;font:12px/1.6 ui-monospace,monospace}
+.editor-styles-wrapper{background:#f0efe8!important;color:#101310!important}
+.editor-styles-wrapper .atlas-display{font:500 clamp(42px,6vw,90px)/.98 Arial,Helvetica,sans-serif;letter-spacing:-.06em}
+.editor-styles-wrapper .atlas-eyebrow,.editor-styles-wrapper .atlas-credit,.editor-styles-wrapper .atlas-date{font:11px/1.6 ui-monospace,monospace;letter-spacing:.08em;text-transform:uppercase}
+.editor-styles-wrapper .atlas-hero,.editor-styles-wrapper .atlas-chapter,.editor-styles-wrapper .atlas-intro,.editor-styles-wrapper .atlas-archive-section,.editor-styles-wrapper .atlas-page-intro,.editor-styles-wrapper .atlas-guide-step,.editor-styles-wrapper .atlas-outro{padding:32px;border-bottom:1px solid #0002}
+.editor-styles-wrapper .atlas-story img,.editor-styles-wrapper .atlas-hero-plate img{max-height:500px;object-fit:contain}
+.editor-styles-wrapper .atlas-search-preview{padding:25px;background:#dbe0d4;border:1px solid #566252}
